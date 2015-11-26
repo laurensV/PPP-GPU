@@ -1,5 +1,5 @@
 
-PROJ_BASE	:= $(HOME)/PPP/gpu/
+PROJ_BASE	:= $(HOME)/cs/PPP-GPU/
 
 INCLUDES	:= -I"$(PROJ_BASE)/include"
 CUDA_LIBS	:= -L"$(CUDA_INSTALL_PATH)/lib64/"
