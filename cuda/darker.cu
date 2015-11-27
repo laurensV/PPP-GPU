@@ -15,20 +15,21 @@ __global__ void darkGray_kernel(const int width, const int height, const int siz
 	// get position of thread in the 'thread matrix'
 	const int x = blockDim.x * blockIdx.x + threadIdx.x;
 	const int y = blockDim.y * blockIdx.y + threadIdx.y;
+
+	// Check if we are outside the bounds of the image
+	if (x >= width || y >= height) return;
+
 	const int pos = (y * width) + x;
 
-	// Check if we are inside the bounds of the image
-	if (x < width && y < height){
-		float grayPix = 0.0f;
-		float r = static_cast< float >(inputImage[pos]);
-		float g = static_cast< float >(inputImage[size + pos]);
-		float b = static_cast< float >(inputImage[(2 * size) + pos]);
+	float grayPix = 0.0f;
+	float r = static_cast< float >(inputImage[pos]);
+	float g = static_cast< float >(inputImage[size + pos]);
+	float b = static_cast< float >(inputImage[(2 * size) + pos]);
 
-		grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
-		grayPix = (grayPix * 0.6f) + 0.5f;
+	grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
+	grayPix = (grayPix * 0.6f) + 0.5f;
 
-		darkGrayImage[pos] = static_cast< unsigned char >(grayPix);
-	}
+	darkGrayImage[pos] = static_cast< unsigned char >(grayPix);
 }
 
 // Host code
@@ -65,6 +66,4 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	// Time GFLOP/s GB/s
 	cout << fixed << setprecision(6) << kernelTime.getElapsed() << setprecision(3) << " " << (static_cast< long long unsigned int >(width) * height * 7) / 1000000000.0 / kernelTime.getElapsed() << " " << (static_cast< long long unsigned int >(width) * height * (4 * sizeof(unsigned char))) / 1000000000.0 / kernelTime.getElapsed() << endl;
 	cout << fixed << setprecision(6) << allocationTime.getElapsed() << setprecision(3) << endl;
-
-
 }
