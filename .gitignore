@@ -29,3 +29,6 @@
 
 #folders
 bin/
+
+#settings
+Makefile.inc
