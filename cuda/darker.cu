@@ -62,8 +62,8 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 		exit(1);
 	}	
 	kernelTime.start();
-	dim3 threadsPerBlock(32, 32);
-	dim3 numBlocks(sizeInputImage / threadsPerBlock.x, sizeInputImage / threadsPerBlock.y);
+	dim3 threadsPerBlock(4, 4);
+	dim3 numBlocks(ceil((float)width / threadsPerBlock.x), ceil((float)height / threadsPerBlock.y));
 	darkGray_kernel<<<numBlocks, threadsPerBlock>>>(width, height, width*height, inputImageDevice, darkGrayImageDevice);
 	if (error != cudaSuccess) {
 		fprintf(stderr, "cuda Error in darkGray_kernel: %s\n", cudaGetErrorString(error));
