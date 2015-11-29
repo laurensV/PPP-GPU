@@ -13,13 +13,13 @@ using std::setprecision;
 // Device code
 __global__ void darkGray_kernel(const int width, const int height, const int size, const unsigned char * inputImage, unsigned char * darkGrayImage) {
 	// get position of thread in the 'thread matrix'
-	const int x = blockDim.x * blockIdx.x + threadIdx.x;
-	const int y = blockDim.y * blockIdx.y + threadIdx.y;
+	int x = blockDim.x * blockIdx.x + threadIdx.x;
+	int y = blockDim.y * blockIdx.y + threadIdx.y;
 
 	// Check if we are outside the bounds of the image
 	if (x >= width || y >= height) return;
 
-	const int pos = (y * width) + x;
+	int pos = (y * width) + x;
 
 	float grayPix = 0.0f;
 	float r = static_cast< float >(inputImage[pos]);
@@ -36,29 +36,48 @@ __global__ void darkGray_kernel(const int width, const int height, const int siz
 void darkGray(const int width, const int height, const unsigned char * inputImage, unsigned char * darkGrayImage) {
 	NSTimer kernelTime = NSTimer("kernelDarker", false, false);	
 	NSTimer allocationTime = NSTimer("allocationDarker", false, false);
-	size_t sizeInputImage = width * height * 3 * sizeof(unsigned char);
-	size_t sizedarkGrayImage = width * height * sizeof(unsigned char);
+	cudaError_t error = cudaSuccess;
+	int sizeInputImage = width * height * 3;
+	int sizedarkGrayImage = width * height;
 
 	// allocate images in device memory
 	unsigned char *inputImageDevice, *darkGrayImageDevice;
 
 	allocationTime.start();
-	cudaMalloc((void **) &inputImageDevice, sizeInputImage);
-	cudaMalloc((void **) &darkGrayImageDevice, sizedarkGrayImage);
+	error = cudaMalloc(&inputImageDevice, sizeInputImage * sizeof(unsigned char));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "cuda Error in cudaMalloc input image: %s\n", cudaGetErrorString(error));
+		exit(1);
+	}
+	error = cudaMalloc(&darkGrayImageDevice, sizedarkGrayImage * sizeof(unsigned char));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "cuda Error in cudaMalloc gray image: %s\n", cudaGetErrorString(error));
+		exit(1);
+	}	
 	allocationTime.stop();
 	// Copy image from host to device
-	cudaMemcpy(inputImageDevice, inputImage, sizeInputImage, cudaMemcpyHostToDevice);
-
+	error = cudaMemcpy(inputImageDevice, inputImage, sizeInputImage, cudaMemcpyHostToDevice);
+	if (error != cudaSuccess) {
+		fprintf(stderr, "cuda Error in cudaMemcpy image from host to device: %s\n", cudaGetErrorString(error));
+		exit(1);
+	}	
 	kernelTime.start();
-	dim3 threadsPerBlock(16, 16);
-	dim3 numBlocks(ceil((float)width / threadsPerBlock.x), ceil((float)height / threadsPerBlock.y));
-	darkGray_kernel<<<numBlocks, threadsPerBlock>>>(width, height, width*height, inputImage, darkGrayImage);
+	dim3 threadsPerBlock(32, 32);
+	dim3 numBlocks(sizeInputImage / threadsPerBlock.x, sizeInputImage / threadsPerBlock.y);
+	darkGray_kernel<<<numBlocks, threadsPerBlock>>>(width, height, width*height, inputImageDevice, darkGrayImageDevice);
+	if (error != cudaSuccess) {
+		fprintf(stderr, "cuda Error in darkGray_kernel: %s\n", cudaGetErrorString(error));
+		exit(1);
+	}		
 	cudaDeviceSynchronize();
 	kernelTime.stop();
 
 	// Copy the result from device to host
-	cudaMemcpy(darkGrayImage, darkGrayImageDevice, sizedarkGrayImage, cudaMemcpyDeviceToHost);
-	
+	error = cudaMemcpy(darkGrayImage, darkGrayImageDevice, sizedarkGrayImage, cudaMemcpyDeviceToHost);
+	if (error != cudaSuccess) {
+		fprintf(stderr, "cuda Error in cudaMemcpy result from device to host: %s\n", cudaGetErrorString(error));
+		exit(1);
+	}		
 	// Free the images in the device memory
 	cudaFree(inputImageDevice);
 	cudaFree(darkGrayImageDevice);
