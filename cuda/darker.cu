@@ -47,7 +47,7 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	cudaMalloc((void **) &darkGrayImageDevice, sizedarkGrayImage);
 	allocationTime.stop();
 	// Copy image from host to device
-	cudaMemcpy(inputImage_device, inputImage, sizeInputImage, cudaMemcpyHostToDevice);
+	cudaMemcpy(inputImageDevice, inputImage, sizeInputImage, cudaMemcpyHostToDevice);
 
 	kernelTime.start();
 	dim3 threadsPerBlock(16, 16);
@@ -60,8 +60,8 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	cudaMemcpy(darkGrayImage, darkGrayImageDevice, sizedarkGrayImage, cudaMemcpyDeviceToHost);
 	
 	// Free the images in the device memory
-	cudaFree(inputImage_device);
-	cudaFree(grayImage_device);
+	cudaFree(inputImageDevice);
+	cudaFree(darkGrayImageDevice);
 	
 	// Time GFLOP/s GB/s
 	cout << fixed << setprecision(6) << kernelTime.getElapsed() << setprecision(3) << " " << (static_cast< long long unsigned int >(width) * height * 7) / 1000000000.0 / kernelTime.getElapsed() << " " << (static_cast< long long unsigned int >(width) * height * (4 * sizeof(unsigned char))) / 1000000000.0 / kernelTime.getElapsed() << endl;
