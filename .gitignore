@@ -32,3 +32,6 @@ bin/
 
 #settings
 Makefile.inc
+
+#output images
+images/*.*.*
