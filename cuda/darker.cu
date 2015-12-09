@@ -19,29 +19,14 @@ void cudaErrorCheck(cudaError_t error){
 	}
 }
 
-__global__ void darkGray_kernel(const int width, const int height, const unsigned char * inputImageR, const unsigned char * inputImageG, const unsigned char * inputImageB, unsigned char * darkGrayImage) {
-	// get position of thread in the 'thread matrix'
-	//int x = (blockDim.x * blockIdx.x + threadIdx.x) % ;
-	//int y = blockDim.y * blockIdx.y + threadIdx.y;
+__global__ void darkGray_kernel(const int width, const int height, const int size, const unsigned char * inputImageR, const unsigned char * inputImageG, const unsigned char * inputImageB, unsigned char * darkGrayImage) {
+	int stride = blockDim.x * gridDim.x;
 
-	// Check if we are outside the bounds of the image
-	//if (x >= width || y >= height) return;
-
-	//int pos = (y * width) + x;
 	for (int pos = blockIdx.x * blockDim.x + threadIdx.x; 
-         pos < width*height; 
-         pos += blockDim.x * gridDim.x) {
-        float grayPix = 0.0f;
-		float r = static_cast< float >(inputImageR[pos]);
-		float g = static_cast< float >(inputImageG[pos]);
-		float b = static_cast< float >(inputImageB[pos]);
-
-		grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
-		grayPix = (grayPix * 0.6f) + 0.5f;
-
-		darkGrayImage[pos] = static_cast< unsigned char >(grayPix);
+         pos < size; 
+         pos += stride) {
+		darkGrayImage[pos] = ((0.3f * (float)inputImageR[pos]) + (0.59f * (float)inputImageG[pos]) + (0.11f * (float)inputImageB[pos])) * 0.6f + 0.5f;
     }
-
 }
 
 // Host code
@@ -85,9 +70,8 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	int threadsPerBlock = 265;
 	//must be a multiple of num SM's for optimal performance
 	int numBlocks = 1024;
-	darkGray_kernel<<<numBlocks, threadsPerBlock>>>(width, height, inputImageDeviceR, inputImageDeviceG, inputImageDeviceB, darkGrayImageDevice);
+	darkGray_kernel<<<numBlocks, threadsPerBlock>>>(width, height, sizeImage inputImageDeviceR, inputImageDeviceG, inputImageDeviceB, darkGrayImageDevice);
 	cudaErrorCheck(error);
-	
 	cudaDeviceSynchronize();
 	kernelTime.stop();
 
