@@ -21,23 +21,27 @@ void cudaErrorCheck(cudaError_t error){
 
 __global__ void darkGray_kernel(const int width, const int height, const unsigned char * inputImageR, const unsigned char * inputImageG, const unsigned char * inputImageB, unsigned char * darkGrayImage) {
 	// get position of thread in the 'thread matrix'
-	int x = blockDim.x * blockIdx.x + threadIdx.x;
-	int y = blockDim.y * blockIdx.y + threadIdx.y;
+	//int x = (blockDim.x * blockIdx.x + threadIdx.x) % ;
+	//int y = blockDim.y * blockIdx.y + threadIdx.y;
 
 	// Check if we are outside the bounds of the image
-	if (x >= width || y >= height) return;
+	//if (x >= width || y >= height) return;
 
-	int pos = (y * width) + x;
+	//int pos = (y * width) + x;
+	for (int pos = blockIdx.x * blockDim.x + threadIdx.x; 
+         pos < width*height; 
+         pos += blockDim.x * gridDim.x) {
+        float grayPix = 0.0f;
+		float r = static_cast< float >(inputImageR[pos]);
+		float g = static_cast< float >(inputImageG[pos]);
+		float b = static_cast< float >(inputImageB[pos]);
 
-	float grayPix = 0.0f;
-	float r = static_cast< float >(inputImageR[pos]);
-	float g = static_cast< float >(inputImageG[pos]);
-	float b = static_cast< float >(inputImageB[pos]);
+		grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
+		grayPix = (grayPix * 0.6f) + 0.5f;
 
-	grayPix = ((0.3f * r) + (0.59f * g) + (0.11f * b));
-	grayPix = (grayPix * 0.6f) + 0.5f;
+		darkGrayImage[pos] = static_cast< unsigned char >(grayPix);
+    }
 
-	darkGrayImage[pos] = static_cast< unsigned char >(grayPix);
 }
 
 // Host code
@@ -76,8 +80,11 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	copyDeviceTime.stop();
 
 	kernelTime.start();
-	dim3 threadsPerBlock(16, 16);
-	dim3 numBlocks(ceil((float)width / threadsPerBlock.x), ceil((float)height / threadsPerBlock.y));
+	//dim3 threadsPerBlock(16, 16);
+	//dim3 numBlocks(ceil((float)width / threadsPerBlock.x), ceil((float)height / threadsPerBlock.y));
+	int threadsPerBlock = 265;
+	//must be a multiple of num SM's for optimal performance
+	int numBlocks = 1024;
 	darkGray_kernel<<<numBlocks, threadsPerBlock>>>(width, height, inputImageDeviceR, inputImageDeviceG, inputImageDeviceB, darkGrayImageDevice);
 	cudaErrorCheck(error);
 	
