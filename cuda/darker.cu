@@ -44,7 +44,7 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	int sizeImage = width * height;
 	// init call to setup cuda
 	initTime.start();
-	cudaSetDevice(1);
+	cudaSetDevice(0);
 	initTime.stop();
 
 	// allocate images in device memory
