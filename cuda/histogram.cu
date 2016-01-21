@@ -89,9 +89,9 @@ void histogram1D(const int width, const int height, const unsigned char * inputI
 
 	// number of SM's for GeForce GTX 480
 	int numSMs = 32;
-	//maximum number of threads per block (minimum is 256)
+	// number of threads per block (minimum is 256)
 	int threadsPerBlock = 256;
-	//must be a multiple of num SM's for optimal performance
+	// must be a multiple of num SM's for optimal performance
 	int numBlocks = 32*numSMs;
 
 	// start the kernel

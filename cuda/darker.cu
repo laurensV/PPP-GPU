@@ -71,9 +71,9 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 
 	// number of SM's for GeForce GTX 480
 	int numSMs = 32;
-	//maximum number of threads per block for GeForce GTX 480
+	// number of threads per block for GeForce GTX 480
 	int threadsPerBlock = 1024;
-	//must be a multiple of num SM's for optimal performance
+	// must be a multiple of num SM's for optimal performance
 	int numBlocks = 32*numSMs;
 
 	// start the kernel
