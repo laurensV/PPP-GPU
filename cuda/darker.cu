@@ -23,8 +23,8 @@ __global__ void darkGray_kernel(const int width, const int height, const int siz
 	int gridStride = blockDim.x * gridDim.x;
 
 	for (int pos = blockIdx.x * blockDim.x + threadIdx.x; 
-         pos < size; 
-         pos += gridStride) {
+        pos < size; 
+        pos += gridStride) {
 		darkGrayImage[pos] = ((0.3f * (float)inputImageR[pos]) + (0.59f * (float)inputImageG[pos]) + (0.11f * (float)inputImageB[pos])) * 0.6f + 0.5f;
     }
 }
@@ -62,7 +62,9 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	// Copy image from host to device
 	copyDeviceTime.start();
 	error = cudaMemcpy(inputImageDeviceR, inputImage, sizeImage, cudaMemcpyHostToDevice);
+	cudaErrorCheck(error);
 	error = cudaMemcpy(inputImageDeviceG, inputImage+sizeImage, sizeImage, cudaMemcpyHostToDevice);
+	cudaErrorCheck(error);
 	error = cudaMemcpy(inputImageDeviceB, inputImage+(sizeImage*2), sizeImage, cudaMemcpyHostToDevice);
 	cudaErrorCheck(error);
 	copyDeviceTime.stop();
@@ -95,7 +97,7 @@ void darkGray(const int width, const int height, const unsigned char * inputImag
 	cudaFree(darkGrayImageDevice);
 	freeTime.stop();
 
-	// Time GFLOP/s GB/s
+	// output times
 	cout << fixed << setprecision(6) << "Initalization time: " << initTime.getElapsed() << setprecision(3) << endl;
 	cout << fixed << setprecision(6) << "Allocation time: " << allocationTime.getElapsed() << setprecision(3) << endl;
 	cout << fixed << setprecision(6) << "Copy to device time:" << copyDeviceTime.getElapsed() << setprecision(3) << endl;
