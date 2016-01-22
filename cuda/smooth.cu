@@ -23,46 +23,38 @@ void cudaErrorCheck(cudaError_t error){
 
 // Device code
 __global__ void smooth_kernel(const int width, const int height, const int size, const int spectrum, float * filter, unsigned char * inputImage, unsigned char * smoothImage) {
-	int gridStride = blockDim.x * gridDim.x;
+    int x = blockIdx.x*blockDim.x + threadIdx.x;
+    int y = blockIdx.y*blockDim.y + threadIdx.y;
 
-	for (int pos = blockIdx.x * blockDim.x + threadIdx.x; 
-        pos < size; 
-        pos += gridStride) {
-		darkGrayImage[pos] = ((0.3f * (float)inputImageR[pos]) + (0.59f * (float)inputImageG[pos]) + (0.11f * (float)inputImageB[pos])) * 0.6f + 0.5f;
-    }
-    /////////////////
+	if(x < width && y < height){
+		for ( int z = 0; z < spectrum; z++ ) {
+			unsigned int filterItem = 0;
+			float filterSum = 0.0f;
+			float smoothPix = 0.0f;
 
-    for ( int y = 0; y < height; y++ ) {
-		for ( int x = 0; x < width; x++ ) {
-			for ( int z = 0; z < spectrum; z++ ) {
-				unsigned int filterItem = 0;
-				float filterSum = 0.0f;
-				float smoothPix = 0.0f;
-
-				for ( int fy = y - 2; fy < y + 3; fy++ ) {
-					if ( fy < 0 ) {
-						filterItem += 5;
+			for ( int fy = y - 2; fy < y + 3; fy++ ) {
+				if ( fy < 0 ) {
+					filterItem += 5;
+					continue;
+				}
+				else if ( fy == height ) {
+					break;
+				}
+				
+				for ( int fx = x - 2; fx < x + 3; fx++ ) {
+					if ( (fx < 0) || (fx >= width) ) {
+						filterItem++;
 						continue;
 					}
-					else if ( fy == height ) {
-						break;
-					}
-					
-					for ( int fx = x - 2; fx < x + 3; fx++ ) {
-						if ( (fx < 0) || (fx >= width) ) {
-							filterItem++;
-							continue;
-						}
 
-						smoothPix += static_cast< float >(inputImage[(z * width * height) + (fy * width) + fx]) * filter[filterItem];
-						filterSum += filter[filterItem];
-						filterItem++;
-					}
+					smoothPix += static_cast< float >(inputImage[(z * size) + (fy * width) + fx]) * filter[filterItem];
+					filterSum += filter[filterItem];
+					filterItem++;
 				}
-
-				smoothPix /= filterSum;
-				smoothImage[(z * width * height) + (y * width) + x] = static_cast< unsigned char >(smoothPix + 0.5f);
 			}
+
+			smoothPix /= filterSum;
+			smoothImage[(z * size) + (y * width) + x] = static_cast< unsigned char >(smoothPix + 0.5f);
 		}
 	}
 }
@@ -104,16 +96,11 @@ void triangularSmooth(const int width, const int height, const int spectrum, uns
 	cudaErrorCheck(error);
 	copyDeviceTime.stop();
 
-	// number of SM's for GeForce GTX 480
-	int numSMs = 32;
-	// number of threads per block for GeForce GTX 480
-	int threadsPerBlock = 1024;
-	// must be a multiple of num SM's for optimal performance
-	int numBlocks = 32*numSMs;
-
+	dim3 threadsPerBlock(16, 16, 1);
+	dim3 numBlocks((width + threadsPerBlock.x - 1)/ threadsPerBlock.x, (height + threadsPerBlock.y - 1) / threadsPerBlock.y, 1);
 	// start the kernel
 	kernelTime.start();
-	smooth_kernel<<<numBlocks, threadsPerBlock>>>(width, height, sizeImage, spectrum, filterDevice, inputImageDevice, smoothImageDevice);
+	smooth_kernel<<<numBlocks, threadsPerBlock>>>(width, height, width*height, spectrum, filterDevice, inputImageDevice, smoothImageDevice);
 	cudaErrorCheck(cudaGetLastError());
 	cudaDeviceSynchronize();
 	kernelTime.stop();
